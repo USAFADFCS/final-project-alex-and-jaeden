@@ -1,0 +1,33 @@
+{
+  "event_id": "2025-11-02-ABC123",
+  "fair_p": {
+    "home": 0.5178,
+    "away": 0.4822
+  },
+  "model_p": {
+    "home": 0.54,
+    "away": 0.46
+  },
+  "edge_pct": {
+    "home": 2.22,
+    "away": -2.22
+  },
+  "reports": [
+    {
+      "event_id": "2025-11-02-ABC123",
+      "side": "home",
+      "fair_p": 0.5178,
+      "model_p": 0.54,
+      "edge_pct": 2.22,
+      "sportsbook": "DemoBook"
+    },
+    {
+      "event_id": "2025-11-02-ABC123",
+      "side": "away",
+      "fair_p": 0.4822,
+      "model_p": 0.46,
+      "edge_pct": -2.22,
+      "sportsbook": "DemoBook"
+    }
+  ]
+}

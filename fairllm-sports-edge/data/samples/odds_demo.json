@@ -1,0 +1,9 @@
+{
+  "event_id": "2025-11-02-ABC123",
+  "sport": "basketball",
+  "league": "NBA",
+  "home_team": "Team A",
+  "away_team": "Team B",
+  "sportsbook": "DemoBook",
+  "moneyline": { "home": -110, "away": 105 }
+}
