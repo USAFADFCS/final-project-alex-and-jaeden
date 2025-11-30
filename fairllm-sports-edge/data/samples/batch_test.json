@@ -1,0 +1,77 @@
+[
+  {
+    "odds": {
+      "event_id": "2025-11-25-NBA-001",
+      "sport": "basketball",
+      "league": "NBA",
+      "home_team": "Los Angeles Lakers",
+      "away_team": "Boston Celtics",
+      "sportsbook": "DraftKings",
+      "moneyline": {"home": -150, "away": 130}
+    },
+    "forecast": {
+      "event_id": "2025-11-25-NBA-001",
+      "p_model": {"home": 0.62, "away": 0.38}
+    }
+  },
+  {
+    "odds": {
+      "event_id": "2025-11-25-NBA-002",
+      "sport": "basketball",
+      "league": "NBA",
+      "home_team": "Golden State Warriors",
+      "away_team": "Phoenix Suns",
+      "sportsbook": "FanDuel",
+      "moneyline": {"home": -110, "away": -110}
+    },
+    "forecast": {
+      "event_id": "2025-11-25-NBA-002",
+      "p_model": {"home": 0.48, "away": 0.52}
+    }
+  },
+  {
+    "odds": {
+      "event_id": "2025-11-25-NFL-001",
+      "sport": "football",
+      "league": "NFL",
+      "home_team": "Kansas City Chiefs",
+      "away_team": "Buffalo Bills",
+      "sportsbook": "BetMGM",
+      "moneyline": {"home": -180, "away": 155}
+    },
+    "forecast": {
+      "event_id": "2025-11-25-NFL-001",
+      "p_model": {"home": 0.68, "away": 0.32}
+    }
+  },
+  {
+    "odds": {
+      "event_id": "2025-11-25-NHL-001",
+      "sport": "hockey",
+      "league": "NHL",
+      "home_team": "Colorado Avalanche",
+      "away_team": "Vegas Golden Knights",
+      "sportsbook": "Caesars",
+      "moneyline": {"home": 120, "away": -140}
+    },
+    "forecast": {
+      "event_id": "2025-11-25-NHL-001",
+      "p_model": {"home": 0.52, "away": 0.48}
+    }
+  },
+  {
+    "odds": {
+      "event_id": "2025-11-25-NBA-003",
+      "sport": "basketball",
+      "league": "NBA",
+      "home_team": "Miami Heat",
+      "away_team": "Milwaukee Bucks",
+      "sportsbook": "DraftKings",
+      "moneyline": {"home": 145, "away": -165}
+    },
+    "forecast": {
+      "event_id": "2025-11-25-NBA-003",
+      "p_model": {"home": 0.43, "away": 0.57}
+    }
+  }
+]
