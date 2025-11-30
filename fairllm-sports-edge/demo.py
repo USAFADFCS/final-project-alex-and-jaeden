@@ -4,6 +4,9 @@ Demo script showing the FairLLM Sports Edge Analysis system
 Demonstrates the full agentic workflow with clear output
 """
 import json
+import sys
+import os
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
 from rich.console import Console
 from rich.panel import Panel
 from rich.markdown import Markdown
