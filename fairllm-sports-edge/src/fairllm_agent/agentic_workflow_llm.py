@@ -357,4 +357,3 @@ if __name__ == "__main__":
     print("FINAL REPORT WITH LLM INSIGHTS")
     print("="*70)
     print(json.dumps(report, indent=2, default=str))
-    
