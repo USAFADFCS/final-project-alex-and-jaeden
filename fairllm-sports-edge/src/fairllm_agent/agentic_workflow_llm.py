@@ -235,21 +235,33 @@ Write: "PASS - No edges above 2% threshold" then explain why in one sentence."""
         
         llm_recommendation = self.invoke_llm(llm_prompt, max_tokens=150)
         
-        # Build final report
-        report = build_edge_reports(
-            odds_data={
-                "event_id": data.get("event_id"),
-                "sport": data.get("sport", "unknown"),
-                "league": data.get("league", "unknown"),
-                "home_team": data.get("home_team", "Home"),
-                "away_team": data.get("away_team", "Away"),
-                "sportsbook": data.get("sportsbook"),
-                "moneyline": data.get("original_odds")
-            },
-            forecast_data={"p_model": data.get("model_probabilities")},
+        # Build final report using correct function signature
+        edge_reports = build_edge_reports(
+            event_id=data.get("event_id"),
+            sportsbook=data.get("sportsbook"),
             fair_p=data.get("fair_probabilities"),
-            edge_pct=edge_pct
+            model_p=data.get("model_probabilities")
         )
+        
+        # Convert to dict format
+        report = {
+            "event_id": data.get("event_id"),
+            "sport": data.get("sport", "unknown"),
+            "league": data.get("league", "unknown"),
+            "sportsbook": data.get("sportsbook"),
+            "matchup": {
+                "home": data.get("home_team", "Home"),
+                "away": data.get("away_team", "Away")
+            },
+            "original_odds": data.get("original_odds"),
+            "fair_probabilities": data.get("fair_probabilities"),
+            "model_probabilities": data.get("model_probabilities"),
+            "edge_analysis": {
+                "edge_pct": edge_pct,
+                "has_positive_edge": max(edge_pct.values()) > 0,
+                "opportunities": as_jsonable(edge_reports)
+            }
+        }
         
         # Add LLM recommendation
         report['llm_recommendation'] = llm_recommendation
@@ -315,6 +327,12 @@ class LLMSportsEdgeFlow(Flow):
         
         # Step 3: Calculate edge with LLM insights
         edge_data = self.edge_calculator.run(evaluated_data)
+        
+        # Add original data fields needed by report generator
+        edge_data['sport'] = odds_data.get('sport', 'unknown')
+        edge_data['league'] = odds_data.get('league', 'unknown')
+        edge_data['home_team'] = odds_data.get('home_team', 'Home')
+        edge_data['away_team'] = odds_data.get('away_team', 'Away')
         
         # Step 4: Generate recommendation with LLM
         final_report = self.report_generator.run(edge_data)
