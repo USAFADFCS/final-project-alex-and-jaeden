@@ -6,10 +6,10 @@ from __future__ import annotations
 from typing import Dict, Any, List
 import json
 
-from fairllm_agent.fair_framework import Agent, Flow, LLMConfig
-from fairllm_agent.probability_calc import fair_probs_from_moneyline
-from fairllm_agent.probability_adjuster import edge
-from fairllm_agent.report_formatter import build_edge_reports, as_jsonable
+from .fair_framework import Agent, Flow, LLMConfig
+from .probability_calc import fair_probs_from_moneyline
+from .probability_adjuster import edge
+from .report_formatter import build_edge_reports, as_jsonable
 
 
 class LLMOddsAnalyzerAgent(Agent):
