@@ -125,3 +125,46 @@ print('Testing system...')
 workflow = SportsEdgeFlow()
 print('✅ System initialized!')
 print('✅ Agents:', [a.name for a in workflow.agents])
+
+---
+
+## 🆕 Using FiveThirtyEight in Interactive Mode
+
+The interactive analysis now supports **real predictions from FiveThirtyEight**!
+```bash
+python3 interactive_analysis.py
+```
+
+When prompted for prediction source, choose:
+- **Option 1**: Manual input (type your own prediction)
+- **Option 2**: FiveThirtyEight (uses real 538 predictions)
+
+### Example Flow with FiveThirtyEight:
+```
+Home Team: Lakers
+Away Team: Celtics
+
+Choose Prediction Source:
+1. Manual input
+2. FiveThirtyEight
+Choice: 2
+
+Select sport:
+1. NBA
+2. NFL
+3. NHL
+4. MLB
+Sport: 1
+
+✅ Found: Los Angeles Lakers vs Boston Celtics
+   Prediction: 58.2% / 41.8%
+
+[System analyzes using FiveThirtyEight prediction]
+```
+
+### Benefits:
+- ✅ **No manual predictions needed**
+- ✅ **Real data from trusted source**
+- ✅ **Supports NBA, NFL, NHL, MLB**
+- ✅ **Automatically fetches latest odds**
+
