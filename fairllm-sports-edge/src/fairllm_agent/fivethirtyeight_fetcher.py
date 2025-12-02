@@ -1,8 +1,6 @@
 """
 FiveThirtyEight API Integration - Multi-Sport Support
-Fetches real predictions for NBA, NFL, NHL, and MLB
 """
-import requests
 import pandas as pd
 from typing import Dict, Optional, Literal
 from datetime import datetime, timedelta
@@ -24,14 +22,12 @@ class FiveThirtyEightFetcher:
         self.sport = sport.upper()
         self.data = None
         self.last_updated = None
+        self.columns_info = {}
     
     def fetch_latest_data(self) -> pd.DataFrame:
-        """Fetch latest predictions for the selected sport"""
+        """Fetch latest predictions"""
         try:
-            print(f"📡 Fetching latest {self.sport} data from FiveThirtyEight...")
-            
-            if self.sport not in self.URLS:
-                raise ValueError(f"Sport {self.sport} not supported")
+            print(f"📡 Fetching {self.sport} data from FiveThirtyEight...")
             
             url = self.URLS[self.sport]
             
@@ -39,18 +35,17 @@ class FiveThirtyEightFetcher:
             try:
                 self.data = pd.read_csv(url, on_bad_lines='skip')
             except:
-                print(f"[yellow]SSL issue, trying alternative...[/yellow]")
                 import urllib.request
                 context = ssl._create_unverified_context()
                 with urllib.request.urlopen(url, context=context) as response:
                     self.data = pd.read_csv(response, on_bad_lines='skip')
             
-            # Print columns for debugging
-            print(f"[dim]Columns found: {', '.join(list(self.data.columns)[:5])}...[/dim]")
+            # Detect column structure
+            self._detect_columns()
             
             # Filter for current season
-            date_col = self._find_date_column()
-            if date_col:
+            if self.columns_info['date']:
+                date_col = self.columns_info['date']
                 self.data[date_col] = pd.to_datetime(self.data[date_col], errors='coerce')
                 today = pd.Timestamp.now()
                 self.data = self.data[
@@ -59,60 +54,71 @@ class FiveThirtyEightFetcher:
                 ]
             
             self.last_updated = datetime.now()
-            print(f"✅ Fetched {len(self.data)} {self.sport} games")
+            print(f"✅ Fetched {len(self.data)} games")
             return self.data
             
         except Exception as e:
-            print(f"❌ Error: {e}")
+            print(f"❌ API Error: {e}")
             print(f"[yellow]Using demo data[/yellow]")
             self.data = self._create_demo_data()
+            self._detect_columns()
             return self.data
     
-    def _find_date_column(self) -> Optional[str]:
-        """Find the date column in the dataframe"""
-        for col in ['date', 'gamedate', 'game_date']:
-            if col in self.data.columns:
-                return col
-        return None
-    
-    def _find_team_columns(self) -> tuple:
-        """Find team column names"""
-        # Common column names for teams
-        team1_options = ['team1', 'home_team', 'home', 'team_home']
-        team2_options = ['team2', 'away_team', 'away', 'team_away']
+    def _detect_columns(self):
+        """Automatically detect column names"""
+        cols = list(self.data.columns)
+        print(f"[dim]Available columns: {', '.join(cols[:8])}{'...' if len(cols) > 8 else ''}[/dim]")
         
+        # Find date column
+        date_col = None
+        for col in cols:
+            if 'date' in col.lower():
+                date_col = col
+                break
+        
+        # Find team columns - look for patterns
         team1_col = None
         team2_col = None
         
-        for col in team1_options:
-            if col in self.data.columns:
-                team1_col = col
+        # Common patterns
+        if 'team1' in cols and 'team2' in cols:
+            team1_col, team2_col = 'team1', 'team2'
+        elif 'home' in cols and 'away' in cols:
+            team1_col, team2_col = 'home', 'away'
+        else:
+            # Look for any column with 'team' in it
+            team_cols = [c for c in cols if 'team' in c.lower()]
+            if len(team_cols) >= 2:
+                team1_col, team2_col = team_cols[0], team_cols[1]
+        
+        # Find probability column
+        prob_col = None
+        for pattern in ['prob', 'win']:
+            matching = [c for c in cols if pattern in c.lower()]
+            if matching:
+                # Prefer first team's probability
+                prob_col = matching[0]
                 break
         
-        for col in team2_options:
-            if col in self.data.columns:
-                team2_col = col
-                break
+        self.columns_info = {
+            'date': date_col,
+            'team1': team1_col,
+            'team2': team2_col,
+            'prob': prob_col
+        }
         
-        return team1_col, team2_col
-    
-    def _find_prob_column(self) -> Optional[str]:
-        """Find probability column"""
-        for col in ['elo_prob1', 'qbelo_prob1', 'raptor_prob1', 'team1_win_prob', 'home_prob']:
-            if col in self.data.columns:
-                return col
-        return None
+        print(f"[dim]Detected: date={date_col}, team1={team1_col}, team2={team2_col}, prob={prob_col}[/dim]")
     
     def _create_demo_data(self) -> pd.DataFrame:
-        """Create demo data with current dates"""
+        """Create demo data"""
         today = datetime.now()
         tomorrow = today + timedelta(days=1)
         
-        date_format = lambda d: d.strftime('%Y-%m-%d')
+        date_str = lambda d: d.strftime('%Y-%m-%d')
         
         if self.sport == 'NBA':
             return pd.DataFrame({
-                'date': [date_format(today), date_format(today), date_format(tomorrow)],
+                'date': [date_str(today), date_str(today), date_str(tomorrow)],
                 'team1': ['Los Angeles Lakers', 'Golden State Warriors', 'Boston Celtics'],
                 'team2': ['Denver Nuggets', 'Phoenix Suns', 'Miami Heat'],
                 'elo_prob1': [0.47, 0.55, 0.63]
@@ -121,40 +127,39 @@ class FiveThirtyEightFetcher:
             days_until_sunday = (6 - today.weekday()) % 7 or 7
             next_sunday = today + timedelta(days=days_until_sunday)
             return pd.DataFrame({
-                'date': [date_format(next_sunday), date_format(next_sunday), date_format(next_sunday + timedelta(days=1))],
+                'date': [date_str(next_sunday), date_str(next_sunday), date_str(next_sunday + timedelta(1))],
                 'team1': ['Kansas City Chiefs', 'San Francisco 49ers', 'Buffalo Bills'],
                 'team2': ['Los Angeles Chargers', 'Seattle Seahawks', 'Los Angeles Rams'],
                 'elo_prob1': [0.65, 0.58, 0.62]
             })
         elif self.sport == 'NHL':
             return pd.DataFrame({
-                'date': [date_format(today), date_format(today), date_format(tomorrow)],
+                'date': [date_str(today), date_str(today), date_str(tomorrow)],
                 'team1': ['Colorado Avalanche', 'Toronto Maple Leafs', 'Boston Bruins'],
                 'team2': ['Vegas Golden Knights', 'Tampa Bay Lightning', 'Florida Panthers'],
                 'elo_prob1': [0.48, 0.54, 0.52]
             })
         else:
             return pd.DataFrame({
-                'date': [date_format(today), date_format(today), date_format(tomorrow)],
+                'date': [date_str(today), date_str(today), date_str(tomorrow)],
                 'team1': ['Los Angeles Dodgers', 'New York Yankees', 'Atlanta Braves'],
                 'team2': ['San Diego Padres', 'Boston Red Sox', 'Philadelphia Phillies'],
                 'elo_prob1': [0.56, 0.57, 0.52]
             })
     
     def get_game_prediction(self, team1: str, team2: str) -> Optional[Dict]:
-        """Get prediction for a specific matchup"""
-        if self.data is None:
-            self.fetch_latest_data()
-        
-        team1_col, team2_col = self._find_team_columns()
-        if not team1_col or not team2_col:
-            print(f"[red]Could not find team columns[/red]")
+        """Get prediction for matchup"""
+        if self.data is None or not self.columns_info['team1']:
             return None
+        
+        team1_col = self.columns_info['team1']
+        team2_col = self.columns_info['team2']
+        prob_col = self.columns_info['prob']
         
         team1_upper = team1.upper()
         team2_upper = team2.upper()
         
-        # Search for teams
+        # Search
         filtered = self.data[
             ((self.data[team1_col].str.upper().str.contains(team1_upper, na=False)) | 
              (self.data[team2_col].str.upper().str.contains(team1_upper, na=False))) &
@@ -164,27 +169,26 @@ class FiveThirtyEightFetcher:
         
         if len(filtered) > 0:
             game = filtered.iloc[0]
-            prob_col = self._find_prob_column()
             
             if team1_upper in str(game[team1_col]).upper():
                 home_team = game[team1_col]
                 away_team = game[team2_col]
-                home_prob = game.get(prob_col, 0.5) if prob_col else 0.5
+                home_prob = float(game[prob_col]) if prob_col and prob_col in game else 0.5
             else:
                 home_team = game[team2_col]
                 away_team = game[team1_col]
-                home_prob = 1 - game.get(prob_col, 0.5) if prob_col else 0.5
+                home_prob = 1 - float(game[prob_col]) if prob_col and prob_col in game else 0.5
             
-            date_col = self._find_date_column()
-            game_date = game.get(date_col, 'Unknown') if date_col else 'Unknown'
+            date_col = self.columns_info['date']
+            game_date = game[date_col] if date_col else 'Unknown'
             if isinstance(game_date, pd.Timestamp):
                 game_date = game_date.strftime('%Y-%m-%d')
             
             return {
                 'home_team': str(home_team),
                 'away_team': str(away_team),
-                'home_prob': float(home_prob),
-                'away_prob': float(1 - home_prob),
+                'home_prob': home_prob,
+                'away_prob': 1 - home_prob,
                 'source': f'FiveThirtyEight {self.sport}',
                 'sport': self.sport,
                 'date': str(game_date)
@@ -197,42 +201,51 @@ class FiveThirtyEightFetcher:
         if self.data is None:
             self.fetch_latest_data()
         
-        team1_col, team2_col = self._find_team_columns()
-        date_col = self._find_date_column()
-        prob_col = self._find_prob_column()
+        team1_col = self.columns_info['team1']
+        team2_col = self.columns_info['team2']
+        date_col = self.columns_info['date']
+        prob_col = self.columns_info['prob']
         
         if not team1_col or not team2_col:
-            raise ValueError("Could not identify team columns")
+            # Return demo data if columns not found
+            print("[yellow]Using demo game list[/yellow]")
+            return pd.DataFrame({
+                'Date': ['Today', 'Today', 'Tomorrow'],
+                'Home': ['Lakers', 'Warriors', 'Celtics'],
+                'Away': ['Nuggets', 'Suns', 'Heat'],
+                'Win %': ['47%', '55%', '63%']
+            })
         
-        # Sort by date if available
+        # Sort by date
         df = self.data.sort_values(date_col) if date_col else self.data
         
-        cols_to_show = []
-        if date_col:
-            cols_to_show.append(date_col)
-        cols_to_show.extend([team1_col, team2_col])
-        if prob_col:
-            cols_to_show.append(prob_col)
+        # Select columns
+        cols = []
+        rename_map = {}
         
-        upcoming = df[cols_to_show].head(limit).copy()
+        if date_col:
+            cols.append(date_col)
+            rename_map[date_col] = 'Date'
+        
+        cols.extend([team1_col, team2_col])
+        rename_map[team1_col] = 'Home'
+        rename_map[team2_col] = 'Away'
+        
+        if prob_col:
+            cols.append(prob_col)
+            rename_map[prob_col] = 'Win %'
+        
+        upcoming = df[cols].head(limit).copy()
         
         # Format date
-        if date_col and date_col in upcoming.columns:
-            if pd.api.types.is_datetime64_any_dtype(upcoming[date_col]):
-                upcoming[date_col] = upcoming[date_col].dt.strftime('%Y-%m-%d')
+        if date_col and pd.api.types.is_datetime64_any_dtype(upcoming[date_col]):
+            upcoming[date_col] = upcoming[date_col].dt.strftime('%Y-%m-%d')
         
-        # Rename columns
-        rename_map = {team1_col: 'Home', team2_col: 'Away'}
-        if date_col:
-            rename_map[date_col] = 'Date'
-        if prob_col:
-            rename_map[prob_col] = 'Home Win %'
-            
         return upcoming.rename(columns=rename_map)
 
 
 def convert_to_forecast_format(prediction: Dict) -> Dict:
-    """Convert prediction to forecast format"""
+    """Convert to forecast format"""
     return {
         "event_id": f"{prediction['date']}-{prediction['sport']}",
         "p_model": {
