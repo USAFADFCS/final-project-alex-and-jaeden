@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-GUI Chatbot: Sports Edge Analysis Assistant
-Modern chat interface in a separate window.
+GUI Chatbot with Example Suggestions
+Shows clickable examples for each input
 """
 
 import sys
@@ -14,14 +14,12 @@ from datetime import datetime
 from fairllm_agent.agentic_workflow_llm import LLMSportsEdgeFlow
 
 
-class SportsBettingChatGUI:
+class ChatbotWithExamples:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("Sports Edge AI Assistant")
-        self.window.geometry("800x700")
-        self.window.minsize(700, 600)
-
-        # Outer background to mimic a device border (black)
+        self.window.geometry("800x750")
+        self.window.minsize(700, 650)
         self.window.configure(bg="#000000")
 
         # Initialize workflow
@@ -29,7 +27,7 @@ class SportsBettingChatGUI:
         self.loading = False
         self.send_enabled = False
 
-        # Placeholder attributes for message area
+        # Placeholder attributes
         self.canvas = None
         self.messages_frame = None
 
@@ -40,21 +38,15 @@ class SportsBettingChatGUI:
         threading.Thread(target=self.load_workflow, daemon=True).start()
 
     def setup_ui(self):
-        # Center white "phone" card – smaller black border
-        phone_frame = tk.Frame(
-            self.window,
-            bg="white",
-            bd=0,
-            highlightthickness=0
-        )
+        # Phone frame
+        phone_frame = tk.Frame(self.window, bg="white", bd=0, highlightthickness=0)
         phone_frame.pack(fill="both", expand=True, padx=20, pady=18)
 
-        # Header bar (blue strip at top)
+        # Header
         header = tk.Frame(phone_frame, bg="#3b46fa", height=70)
         header.pack(fill="x", side="top")
         header.pack_propagate(False)
 
-        # Left side of header (title + subtitle)
         header_left = tk.Frame(header, bg="#3b46fa")
         header_left.pack(side="left", fill="both", expand=True, padx=20)
 
@@ -76,7 +68,7 @@ class SportsBettingChatGUI:
         )
         subtitle.pack(anchor="w")
 
-        # Right side of header (Demo button + menu line)
+        # Right side buttons
         header_right = tk.Frame(header, bg="#3b46fa")
         header_right.pack(side="right", padx=20)
 
@@ -106,39 +98,37 @@ class SportsBettingChatGUI:
         )
         menu_line.pack(side="right", pady=(18, 0))
 
-        # Chat area container
+        # Chat area
         chat_container = tk.Frame(phone_frame, bg="white")
         chat_container.pack(fill="both", expand=True, padx=10, pady=(6, 0))
 
-        # Canvas + scrollbar for scrollable messages
-        self.canvas = tk.Canvas(
-            chat_container,
-            bg="white",
-            highlightthickness=0
-        )
-        scrollbar = ttk.Scrollbar(
-            chat_container,
-            orient="vertical",
-            command=self.canvas.yview
-        )
+        self.canvas = tk.Canvas(chat_container, bg="white", highlightthickness=0)
+        scrollbar = ttk.Scrollbar(chat_container, orient="vertical", command=self.canvas.yview)
         self.canvas.configure(yscrollcommand=scrollbar.set)
 
         self.canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # Frame inside canvas to hold message bubbles
         self.messages_frame = tk.Frame(self.canvas, bg="white")
         self.canvas.create_window((0, 0), window=self.messages_frame, anchor="nw")
 
-        # Update scrollregion when size changes
         self.messages_frame.bind(
             "<Configure>",
             lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
         )
 
-        # Bottom input bar
-        input_bar = tk.Frame(phone_frame, bg="white", height=70)
-        input_bar.pack(fill="x", side="bottom", pady=(0, 5))
+        # Bottom input area with examples
+        input_section = tk.Frame(phone_frame, bg="white")
+        input_section.pack(fill="x", side="bottom", pady=(0, 5))
+
+        # Example suggestions (clickable chips)
+        self.examples_frame = tk.Frame(input_section, bg="white", height=35)
+        self.examples_frame.pack(fill="x", padx=16, pady=(0, 5))
+        self.examples_frame.pack_propagate(False)
+
+        # Input bar
+        input_bar = tk.Frame(input_section, bg="white", height=70)
+        input_bar.pack(fill="x")
         input_bar.pack_propagate(False)
 
         entry_holder = tk.Frame(input_bar, bg="#f3f4f6")
@@ -155,7 +145,7 @@ class SportsBettingChatGUI:
         self.input_field.pack(fill="both", expand=True, padx=10, pady=6)
         self.input_field.bind("<Return>", lambda e: self.send_message())
 
-        # Custom blue "Send" button built on a Canvas
+        # Send button
         send_button_holder = tk.Frame(input_bar, bg="white")
         send_button_holder.pack(side="right", padx=(0, 16), pady=10)
 
@@ -170,17 +160,17 @@ class SportsBettingChatGUI:
         self.send_button.pack()
         self._set_send_button_enabled(False)
 
-        # Hint label above the input
-        hint_label = tk.Label(
-            phone_frame,
-            text='Try: "Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%"',
-            font=("Segoe UI", 9),
+        # Hint label
+        self.hint_label = tk.Label(
+            input_section,
+            text='Waiting for AI to load...',
+            font=("Segoe UI", 8),
             bg="white",
             fg="#9ca3af"
         )
-        hint_label.pack(fill="x", padx=18, pady=(4, 0))
+        self.hint_label.pack(fill="x", padx=18, pady=(0, 2))
 
-        # Status label at bottom (inside black area)
+        # Status label
         self.status_label = tk.Label(
             self.window,
             text="Initializing AI agents...",
@@ -192,27 +182,20 @@ class SportsBettingChatGUI:
         )
         self.status_label.pack(fill="x", side="bottom", pady=(0, 6))
 
-        # Initial system messages (no emojis)
+        # Initial messages
         self.add_message("system", "Welcome to Sports Edge Chat.")
-        self.add_message(
-            "system",
-            "Once the AI loads, describe a matchup with odds and your win probability."
-        )
-        self.add_message(
-            "system",
-            "Example: 'Lakers vs Celtics, Lakers -140, Celtics +120, I predict Lakers 62%'."
-        )
+        self.add_message("system", "Once the AI loads, describe a matchup with odds and your prediction.")
+        
+        # Set initial examples
+        self.show_examples([])
 
         self.input_field.focus_set()
-
-    # ---------- Send button helpers (canvas-based) ----------
 
     def _on_send_click(self, event):
         if self.send_enabled:
             self.send_message()
 
     def _set_send_button_enabled(self, enabled: bool):
-        """Redraw the custom send button in enabled/disabled state."""
         self.send_enabled = enabled
         self.send_button.delete("all")
 
@@ -225,74 +208,104 @@ class SportsBettingChatGUI:
             text_color = "#e5e7eb"
             cursor = "arrow"
 
-        # Simple rounded-ish rectangle
-        self.send_button.create_rectangle(
-            0, 0, 80, 32,
-            outline=fill,
-            fill=fill,
-            width=0,
-            tags="btn_bg"
-        )
-        self.send_button.create_text(
-            40, 16,
-            text="Send",
-            fill=text_color,
-            font=("Segoe UI", 11, "bold"),
-            tags="btn_label"
-        )
+        self.send_button.create_rectangle(0, 0, 80, 32, outline=fill, fill=fill, width=0, tags="btn_bg")
+        self.send_button.create_text(40, 16, text="Send", fill=text_color, font=("Segoe UI", 11, "bold"), tags="btn_label")
         self.send_button.config(cursor=cursor)
-
-        # Bind/unbind click
         self.send_button.bind("<Button-1>", self._on_send_click if enabled else lambda e: None)
 
-    # ---------- AI workflow loading ----------
+    def show_examples(self, examples):
+        """Display clickable example suggestions"""
+        # Clear existing examples
+        for widget in self.examples_frame.winfo_children():
+            widget.destroy()
+
+        if not examples:
+            # Show default examples when AI loads
+            examples = [
+                "Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%",
+                "Warriors vs Suns, Warriors -150, Suns +130, Warriors 55%",
+                "Chiefs vs Bills, Chiefs -200, Bills +170, Chiefs 58%"
+            ]
+
+        # Create a scrollable container
+        canvas = tk.Canvas(self.examples_frame, bg="white", highlightthickness=0, height=30)
+        canvas.pack(side="left", fill="both", expand=True)
+
+        scrollbar = tk.Scrollbar(self.examples_frame, orient="horizontal", command=canvas.xview)
+        scrollbar.pack(side="bottom", fill="x")
+        canvas.configure(xscrollcommand=scrollbar.set)
+
+        container = tk.Frame(canvas, bg="white")
+        canvas.create_window((0, 0), window=container, anchor="nw")
+
+        for example in examples:
+            btn = tk.Button(
+                container,
+                text=example if len(example) < 50 else example[:47] + "...",
+                font=("Segoe UI", 9),
+                bg="#f3f4f6",
+                fg="#374151",
+                activebackground="#e5e7eb",
+                activeforeground="#111827",
+                relief=tk.FLAT,
+                bd=0,
+                padx=12,
+                pady=4,
+                command=lambda ex=example: self.use_example(ex),
+                cursor="hand2"
+            )
+            btn.pack(side="left", padx=4)
+
+        container.update_idletasks()
+        canvas.configure(scrollregion=canvas.bbox("all"))
+
+    def use_example(self, example):
+        """Fill input with example text"""
+        self.input_field.delete(0, tk.END)
+        self.input_field.insert(0, example)
+        self.input_field.focus()
 
     def load_workflow(self):
-        """Load the AI workflow in background"""
+        """Load AI workflow in background"""
         try:
             self.workflow = LLMSportsEdgeFlow()
             agents_count = len(self.workflow.agents)
 
-            def on_ready():
-                self.status_label.config(
-                    text=f"Ready — {agents_count} AI agents loaded"
-                )
-                self._set_send_button_enabled(True)
-                self.add_message(
-                    "system",
-                    "You can now type a matchup with odds and your win probability."
-                )
+            self.window.after(0, lambda: self.status_label.config(
+                text=f"✓ Ready! {agents_count} AI agents loaded"
+            ))
+            self.window.after(0, lambda: self._set_send_button_enabled(True))
+            self.window.after(0, lambda: self.add_message(
+                "system",
+                "AI loaded! Enter a matchup with odds and your prediction, or click an example below."
+            ))
+            self.window.after(0, lambda: self.hint_label.config(
+                text='Click an example or type your own'
+            ))
+            # Show default examples
+            self.window.after(0, lambda: self.show_examples([
+                "Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%",
+                "Warriors vs Suns, -150, +130, Warriors 55%",
+                "Chiefs vs Bills, -200, +170, 58%"
+            ]))
 
-            self.window.after(0, on_ready)
         except Exception as e:
-            def on_error():
-                self.status_label.config(
-                    text=f"Error loading AI agents: {e}"
-                )
-                self.add_message("system", f"Error loading AI workflow: {e}")
-            self.window.after(0, on_error)
-
-    # ---------- Message UI helpers ----------
+            self.window.after(0, lambda: self.add_message("system", f"Error loading: {e}"))
 
     def _scroll_to_bottom(self):
         self.canvas.update_idletasks()
         self.canvas.yview_moveto(1.0)
 
     def add_message(self, sender, text):
-        """
-        Add a message bubble to the chat area.
-        sender: 'user', 'ai', 'system', 'result', 'recommendation'
-        """
-        wrap_width = 480
-
+        """Add a message bubble"""
         row = tk.Frame(self.messages_frame, bg="white")
-        row.pack(fill="x", pady=6, padx=12)
+        row.pack(fill="x", pady=4)
+
+        wrap_width = 500
 
         if sender == "user":
-            # Right-aligned blue bubble
             bubble = tk.Frame(row, bg="#3b46fa")
             bubble.pack(side="right", padx=(40, 0))
-
             label = tk.Label(
                 bubble,
                 text=text,
@@ -305,34 +318,21 @@ class SportsBettingChatGUI:
             label.pack(padx=12, pady=8)
 
         elif sender in ("ai", "result", "recommendation"):
-            # Left-aligned bubble with small avatar-style dot
-            avatar = tk.Canvas(
-                row,
-                width=28,
-                height=28,
-                bg="white",
-                highlightthickness=0,
-                bd=0
-            )
-            avatar.pack(side="left", padx=(0, 6), pady=(4, 0))
-            avatar.create_oval(4, 4, 24, 24, fill="#3b46fa", outline="")
-
-            if sender == "ai":
-                bubble_color = "#e6edff"
-                text_color = "#111827"
-                font_size = 11
-            elif sender == "result":
-                bubble_color = "#f0eaff"
-                text_color = "#111827"
+            if sender == "result":
+                bubble_color = "#f3f4f6"
+                text_color = "#374151"
                 font_size = 10
-            else:  # recommendation
+            elif sender == "recommendation":
                 bubble_color = "#e3f8e8"
                 text_color = "#064e3b"
+                font_size = 11
+            else:
+                bubble_color = "#f3f4f6"
+                text_color = "#111827"
                 font_size = 11
 
             bubble = tk.Frame(row, bg=bubble_color)
             bubble.pack(side="left", padx=(0, 40))
-
             label = tk.Label(
                 bubble,
                 text=text,
@@ -345,7 +345,6 @@ class SportsBettingChatGUI:
             label.pack(padx=12, pady=8)
 
         elif sender == "system":
-            # Centered lighter text (no bubble)
             label = tk.Label(
                 row,
                 text=text,
@@ -359,8 +358,6 @@ class SportsBettingChatGUI:
 
         self._scroll_to_bottom()
 
-    # ---------- Chat logic ----------
-
     def send_message(self):
         """Handle user message"""
         if self.loading:
@@ -371,11 +368,18 @@ class SportsBettingChatGUI:
             return
 
         if self.workflow is None:
-            self.add_message("system", "AI agents are still loading. Please wait a moment.")
+            self.add_message("system", "AI agents are still loading. Please wait.")
             return
 
         self.input_field.delete(0, tk.END)
         self.add_message("user", message)
+
+        # Update examples for next input
+        self.show_examples([
+            "Nuggets vs Clippers, -145, +125, 55%",
+            "Ravens -120, Bengals +100, Ravens 52%",
+            "Bruins vs Rangers, +105, -125, 48%"
+        ])
 
         # Process in background
         self.loading = True
@@ -393,20 +397,16 @@ class SportsBettingChatGUI:
                     0,
                     lambda: self.add_message(
                         "ai",
-                        "I could not understand that input. "
-                        "Please use a format like: "
-                        "'Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%'."
+                        "I could not understand that input. Try the format: "
+                        "'Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%'"
                     )
                 )
                 self.window.after(0, self.reset_input)
                 return
 
-            self.window.after(
-                0,
-                lambda: self.add_message("system", "Running AI analysis...")
-            )
+            self.window.after(0, lambda: self.add_message("system", "Running AI analysis..."))
 
-            # Build data for workflow
+            # Build data
             odds_data = {
                 "event_id": f"chat-{parsed['home']}-{parsed['away']}",
                 "sport": "basketball",
@@ -429,17 +429,12 @@ class SportsBettingChatGUI:
 
         except Exception as e:
             self.window.after(0, lambda: self.add_message("ai", f"Error: {str(e)}"))
-            self.window.after(
-                0,
-                lambda: self.status_label.config(
-                    text="An error occurred during analysis."
-                )
-            )
+            self.window.after(0, lambda: self.status_label.config(text="Error during analysis"))
         finally:
             self.window.after(0, self.reset_input)
 
     def parse_message(self, message):
-        """Parse user message to extract game info"""
+        """Parse user message"""
         try:
             message = message.lower()
 
@@ -460,12 +455,12 @@ class SportsBettingChatGUI:
 
             if len(odds) >= 2:
                 home_odds = int(odds[0])
-                away_odds = int(odds[1])   # <-- fixed typo here
+                away_odds = int(odds[1])
             else:
                 home_odds = -150
                 away_odds = +130
 
-            # Extract probability (assume last number is home win %)
+            # Extract probability
             prob_pattern = r"(\d+)%?"
             probs = re.findall(prob_pattern, message)
 
@@ -490,17 +485,28 @@ class SportsBettingChatGUI:
             return None
 
     def display_results(self, report, parsed):
-        """Display analysis results as a series of AI messages"""
+        """Display analysis results"""
         self.add_message("ai", "Analysis complete. Here are the details:")
+
+        # Show LLM insights if available
+        if 'llm_insights' in report:
+            insights = report['llm_insights']
+
+            if insights.get('odds_analysis') and insights['odds_analysis'] != "Analyzed odds and removed vig using standard mathematical formulas.":
+                self.add_message("ai", f"OddsAnalyzer: {insights['odds_analysis']}")
+
+            if insights.get('forecast_evaluation') and insights['forecast_evaluation'] != "Forecast validated. Probabilities sum to 100% and are within valid ranges.":
+                self.add_message("ai", f"ForecastEvaluator: {insights['forecast_evaluation']}")
+
+            if insights.get('edge_insight') and insights['edge_insight'] != "Edge calculated. Positive edges indicate potential betting value.":
+                self.add_message("ai", f"EdgeCalculator: {insights['edge_insight']}")
 
         # Fair odds
         fair_home = report["fair_probabilities"]["home"]
         fair_away = report["fair_probabilities"]["away"]
         self.add_message(
             "result",
-            f"Fair odds (vig removed):\n"
-            f"{parsed['home']}: {fair_home:.1%}\n"
-            f"{parsed['away']}: {fair_away:.1%}"
+            f"Fair odds (vig removed):\n{parsed['home']}: {fair_home:.1%}\n{parsed['away']}: {fair_away:.1%}"
         )
 
         # Model prediction
@@ -508,9 +514,7 @@ class SportsBettingChatGUI:
         model_away = report["model_probabilities"]["away"]
         self.add_message(
             "result",
-            f"Your prediction:\n"
-            f"{parsed['home']}: {model_home:.1%}\n"
-            f"{parsed['away']}: {model_away:.1%}"
+            f"Your prediction:\n{parsed['home']}: {model_home:.1%}\n{parsed['away']}: {model_away:.1%}"
         )
 
         # Edge
@@ -518,20 +522,25 @@ class SportsBettingChatGUI:
         away_edge = report["edge_analysis"]["edge_pct"]["away"]
         self.add_message(
             "result",
-            f"Betting edge:\n"
-            f"{parsed['home']}: {home_edge:+.2f}%\n"
-            f"{parsed['away']}: {away_edge:+.2f}%"
+            f"Betting edge:\n{parsed['home']}: {home_edge:+.2f}%\n{parsed['away']}: {away_edge:+.2f}%"
         )
 
         # Recommendation
-        rec = report["recommendation"]
-        self.add_message("recommendation", rec)
+        if 'llm_recommendation' in report and report['llm_recommendation'] != "Recommendation generated based on edge thresholds and risk management.":
+            self.add_message("recommendation", report['llm_recommendation'])
+        else:
+            rec = report["recommendation"]
+            self.add_message("recommendation", rec)
 
         # Responsible betting reminder
-        self.add_message(
-            "system",
-            "Reminder: Bet responsibly and never stake more than you can afford to lose."
-        )
+        self.add_message("system", "Reminder: Bet responsibly.")
+
+        # Update examples for new analysis
+        self.show_examples([
+            "Mavericks vs Thunder, +120, -140, 46%",
+            "Eagles -250, Dolphins +210, Eagles 61%",
+            "Avalanche vs Knights, -120, +100, 52%"
+        ])
 
         self.status_label.config(text="Analysis complete")
 
@@ -540,32 +549,16 @@ class SportsBettingChatGUI:
         self.loading = False
         if self.workflow is not None:
             self._set_send_button_enabled(True)
-        else:
-            self._set_send_button_enabled(False)
         self.input_field.focus()
 
-    # Optional helpers
-
     def run_example(self):
-        """Run an example analysis when Demo button is pressed"""
+        """Run demo analysis"""
         if self.workflow is None:
-            self.add_message(
-                "system",
-                "Agents are still loading; the demo will work once they are ready."
-            )
+            self.add_message("system", "Agents still loading...")
             return
         self.input_field.delete(0, tk.END)
-        self.input_field.insert(
-            0,
-            "Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%"
-        )
+        self.input_field.insert(0, "Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%")
         self.send_message()
-
-    def reset_conversation(self):
-        """Clear chat and start fresh"""
-        for child in self.messages_frame.winfo_children():
-            child.destroy()
-        self.add_message("system", "New conversation started.")
 
     def run(self):
         """Start the GUI"""
@@ -573,7 +566,7 @@ class SportsBettingChatGUI:
 
 
 def main():
-    app = SportsBettingChatGUI()
+    app = ChatbotWithExamples()
     app.run()
 
 
