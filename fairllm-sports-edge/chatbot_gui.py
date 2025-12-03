@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-GUI Chatbot with Example Suggestions
-Shows clickable examples for each input
+GUI Chatbot: Sports Edge Analysis Assistant - FIXED VERSION
+Proper message ordering and scroll behavior
 """
 
 import sys
@@ -14,7 +14,7 @@ from datetime import datetime
 from fairllm_agent.agentic_workflow_llm import LLMSportsEdgeFlow
 
 
-class ChatbotWithExamples:
+class ChatbotFixed:
     def __init__(self):
         self.window = tk.Tk()
         self.window.title("Sports Edge AI Assistant")
@@ -110,12 +110,11 @@ class ChatbotWithExamples:
         scrollbar.pack(side="right", fill="y")
 
         self.messages_frame = tk.Frame(self.canvas, bg="white")
-        self.canvas.create_window((0, 0), window=self.messages_frame, anchor="nw")
+        self.canvas_window = self.canvas.create_window((0, 0), window=self.messages_frame, anchor="nw")
 
-        self.messages_frame.bind(
-            "<Configure>",
-            lambda e: self.canvas.configure(scrollregion=self.canvas.bbox("all"))
-        )
+        # Bind to update scroll region
+        self.messages_frame.bind("<Configure>", self._on_frame_configure)
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
 
         # Bottom input area with examples
         input_section = tk.Frame(phone_frame, bg="white")
@@ -191,6 +190,15 @@ class ChatbotWithExamples:
 
         self.input_field.focus_set()
 
+    def _on_frame_configure(self, event):
+        """Update scroll region when frame size changes"""
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        
+    def _on_canvas_configure(self, event):
+        """Update frame width when canvas resizes"""
+        canvas_width = event.width
+        self.canvas.itemconfig(self.canvas_window, width=canvas_width)
+
     def _on_send_click(self, event):
         if self.send_enabled:
             self.send_message()
@@ -220,14 +228,13 @@ class ChatbotWithExamples:
             widget.destroy()
 
         if not examples:
-            # Show default examples when AI loads
             examples = [
                 "Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%",
                 "Warriors vs Suns, Warriors -150, Suns +130, Warriors 55%",
                 "Chiefs vs Bills, Chiefs -200, Bills +170, Chiefs 58%"
             ]
 
-        # Create a scrollable container
+        # Create scrollable container
         canvas = tk.Canvas(self.examples_frame, bg="white", highlightthickness=0, height=30)
         canvas.pack(side="left", fill="both", expand=True)
 
@@ -282,7 +289,6 @@ class ChatbotWithExamples:
             self.window.after(0, lambda: self.hint_label.config(
                 text='Click an example or type your own'
             ))
-            # Show default examples
             self.window.after(0, lambda: self.show_examples([
                 "Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%",
                 "Warriors vs Suns, -150, +130, Warriors 55%",
@@ -293,13 +299,14 @@ class ChatbotWithExamples:
             self.window.after(0, lambda: self.add_message("system", f"Error loading: {e}"))
 
     def _scroll_to_bottom(self):
+        """Scroll to bottom of chat"""
         self.canvas.update_idletasks()
         self.canvas.yview_moveto(1.0)
 
     def add_message(self, sender, text):
-        """Add a message bubble"""
+        """Add a message bubble - MESSAGES APPEND TO BOTTOM"""
         row = tk.Frame(self.messages_frame, bg="white")
-        row.pack(fill="x", pady=4)
+        row.pack(fill="x", pady=4, anchor="n")  # anchor="n" keeps them at top of frame
 
         wrap_width = 500
 
@@ -356,7 +363,8 @@ class ChatbotWithExamples:
             )
             label.pack(anchor="center", padx=40)
 
-        self._scroll_to_bottom()
+        # Scroll to bottom after adding message
+        self.window.after(10, self._scroll_to_bottom)
 
     def send_message(self):
         """Handle user message"""
@@ -374,7 +382,7 @@ class ChatbotWithExamples:
         self.input_field.delete(0, tk.END)
         self.add_message("user", message)
 
-        # Update examples for next input
+        # Update examples
         self.show_examples([
             "Nuggets vs Clippers, -145, +125, 55%",
             "Ravens -120, Bengals +100, Ravens 52%",
@@ -393,14 +401,10 @@ class ChatbotWithExamples:
             parsed = self.parse_message(message)
 
             if parsed is None:
-                self.window.after(
-                    0,
-                    lambda: self.add_message(
-                        "ai",
-                        "I could not understand that input. Try the format: "
-                        "'Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%'"
-                    )
-                )
+                self.window.after(0, lambda: self.add_message(
+                    "ai",
+                    "I could not understand that input. Try: 'Lakers vs Celtics, Lakers -140, Celtics +120, Lakers 62%'"
+                ))
                 self.window.after(0, self.reset_input)
                 return
 
@@ -423,8 +427,6 @@ class ChatbotWithExamples:
             }
 
             report = self.workflow.run(odds_data, forecast_data)
-
-            # Display results
             self.window.after(0, lambda: self.display_results(report, parsed))
 
         except Exception as e:
@@ -532,10 +534,9 @@ class ChatbotWithExamples:
             rec = report["recommendation"]
             self.add_message("recommendation", rec)
 
-        # Responsible betting reminder
         self.add_message("system", "Reminder: Bet responsibly.")
 
-        # Update examples for new analysis
+        # Update examples
         self.show_examples([
             "Mavericks vs Thunder, +120, -140, 46%",
             "Eagles -250, Dolphins +210, Eagles 61%",
@@ -566,7 +567,7 @@ class ChatbotWithExamples:
 
 
 def main():
-    app = ChatbotWithExamples()
+    app = ChatbotFixed()
     app.run()
 
 

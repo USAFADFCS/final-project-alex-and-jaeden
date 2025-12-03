@@ -9,4 +9,5 @@ def blend_model_with_fair(fair_p: Dict[str, float], model_p: Dict[str, float], a
     }
 
 def edge(model_p: Dict[str, float], fair_p: Dict[str, float]) -> Dict[str, float]:
-    return {"home": model_p["home"] - fair_p["home"], "away": model_p["away"] - fair_p["away"]}
+    """Calculate betting edge as percentage"""
+    return {"home": (model_p["home"] - fair_p["home"]) * 100, "away": (model_p["away"] - fair_p["away"]) * 100}
