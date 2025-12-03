@@ -21,12 +21,13 @@ class SportsBettingChatGUI:
         self.window.geometry("800x700")
         self.window.minsize(700, 600)
 
-        # Outer background to mimic a device border (now black)
+        # Outer background to mimic a device border (black)
         self.window.configure(bg="#000000")
 
         # Initialize workflow
         self.workflow = None
         self.loading = False
+        self.send_enabled = False
 
         # Placeholder attributes for message area
         self.canvas = None
@@ -39,14 +40,14 @@ class SportsBettingChatGUI:
         threading.Thread(target=self.load_workflow, daemon=True).start()
 
     def setup_ui(self):
-        # Center white "phone" card
+        # Center white "phone" card – smaller black border
         phone_frame = tk.Frame(
             self.window,
             bg="white",
             bd=0,
             highlightthickness=0
         )
-        phone_frame.pack(fill="both", expand=True, padx=40, pady=30)
+        phone_frame.pack(fill="both", expand=True, padx=20, pady=18)
 
         # Header bar (blue strip at top)
         header = tk.Frame(phone_frame, bg="#3b46fa", height=70)
@@ -75,9 +76,26 @@ class SportsBettingChatGUI:
         )
         subtitle.pack(anchor="w")
 
-        # Simple "menu" line on the right (like the mockup)
+        # Right side of header (Demo button + menu line)
         header_right = tk.Frame(header, bg="#3b46fa")
         header_right.pack(side="right", padx=20)
+
+        demo_button = tk.Button(
+            header_right,
+            text="Demo",
+            font=("Segoe UI", 9, "bold"),
+            bg="white",
+            fg="#3b46fa",
+            activebackground="#e5ecff",
+            activeforeground="#3b46fa",
+            relief=tk.FLAT,
+            bd=0,
+            padx=10,
+            pady=2,
+            command=self.run_example,
+            cursor="hand2"
+        )
+        demo_button.pack(side="left", pady=(16, 0), padx=(0, 10))
 
         menu_line = tk.Label(
             header_right,
@@ -86,7 +104,7 @@ class SportsBettingChatGUI:
             bg="#3b46fa",
             fg="white"
         )
-        menu_line.pack(anchor="e", pady=(18, 0))
+        menu_line.pack(side="right", pady=(18, 0))
 
         # Chat area container
         chat_container = tk.Frame(phone_frame, bg="white")
@@ -137,27 +155,20 @@ class SportsBettingChatGUI:
         self.input_field.pack(fill="both", expand=True, padx=10, pady=6)
         self.input_field.bind("<Return>", lambda e: self.send_message())
 
-        # Send button (text only, no emoji)
+        # Custom blue "Send" button built on a Canvas
         send_button_holder = tk.Frame(input_bar, bg="white")
         send_button_holder.pack(side="right", padx=(0, 16), pady=10)
 
-        self.send_button = tk.Button(
+        self.send_button = tk.Canvas(
             send_button_holder,
-            text="Send",
-            font=("Segoe UI", 11, "bold"),
-            bg="#3b46fa",
-            fg="white",
-            activebackground="#2d34c7",
-            activeforeground="white",
-            relief=tk.FLAT,
-            bd=0,
-            command=self.send_message,
-            cursor="arrow"
+            width=80,
+            height=32,
+            bg="white",
+            highlightthickness=0,
+            bd=0
         )
-        
-
-        self.send_button.config(state="disabled")
         self.send_button.pack()
+        self._set_send_button_enabled(False)
 
         # Hint label above the input
         hint_label = tk.Label(
@@ -194,6 +205,46 @@ class SportsBettingChatGUI:
 
         self.input_field.focus_set()
 
+    # ---------- Send button helpers (canvas-based) ----------
+
+    def _on_send_click(self, event):
+        if self.send_enabled:
+            self.send_message()
+
+    def _set_send_button_enabled(self, enabled: bool):
+        """Redraw the custom send button in enabled/disabled state."""
+        self.send_enabled = enabled
+        self.send_button.delete("all")
+
+        if enabled:
+            fill = "#3b46fa"
+            text_color = "white"
+            cursor = "hand2"
+        else:
+            fill = "#9ca3af"
+            text_color = "#e5e7eb"
+            cursor = "arrow"
+
+        # Simple rounded-ish rectangle
+        self.send_button.create_rectangle(
+            0, 0, 80, 32,
+            outline=fill,
+            fill=fill,
+            width=0,
+            tags="btn_bg"
+        )
+        self.send_button.create_text(
+            40, 16,
+            text="Send",
+            fill=text_color,
+            font=("Segoe UI", 11, "bold"),
+            tags="btn_label"
+        )
+        self.send_button.config(cursor=cursor)
+
+        # Bind/unbind click
+        self.send_button.bind("<Button-1>", self._on_send_click if enabled else lambda e: None)
+
     # ---------- AI workflow loading ----------
 
     def load_workflow(self):
@@ -206,10 +257,7 @@ class SportsBettingChatGUI:
                 self.status_label.config(
                     text=f"Ready — {agents_count} AI agents loaded"
                 )
-                self.send_button.config(
-                    state="normal",
-                    cursor="hand2"
-                )
+                self._set_send_button_enabled(True)
                 self.add_message(
                     "system",
                     "You can now type a matchup with odds and your win probability."
@@ -257,8 +305,7 @@ class SportsBettingChatGUI:
             label.pack(padx=12, pady=8)
 
         elif sender in ("ai", "result", "recommendation"):
-            # Left-aligned bubble
-            # Simple small circle to mimic avatar (no emoji)
+            # Left-aligned bubble with small avatar-style dot
             avatar = tk.Canvas(
                 row,
                 width=28,
@@ -332,7 +379,7 @@ class SportsBettingChatGUI:
 
         # Process in background
         self.loading = True
-        self.send_button.config(state="disabled", cursor="watch")
+        self._set_send_button_enabled(False)
         self.status_label.config(text="Analyzing matchup...")
         threading.Thread(target=self.process_message, args=(message,), daemon=True).start()
 
@@ -413,12 +460,12 @@ class SportsBettingChatGUI:
 
             if len(odds) >= 2:
                 home_odds = int(odds[0])
-                away_odds = int(odds[1])
+                away_odds = int(odds[1])   # <-- fixed typo here
             else:
                 home_odds = -150
                 away_odds = +130
 
-            # Extract probability
+            # Extract probability (assume last number is home win %)
             prob_pattern = r"(\d+)%?"
             probs = re.findall(prob_pattern, message)
 
@@ -492,19 +539,19 @@ class SportsBettingChatGUI:
         """Reset input controls"""
         self.loading = False
         if self.workflow is not None:
-            self.send_button.config(state="normal", cursor="hand2")
+            self._set_send_button_enabled(True)
         else:
-            self.send_button.config(state="disabled", cursor="arrow")
+            self._set_send_button_enabled(False)
         self.input_field.focus()
 
     # Optional helpers
 
     def run_example(self):
-        """Run an example analysis (not wired to UI by default)"""
+        """Run an example analysis when Demo button is pressed"""
         if self.workflow is None:
             self.add_message(
                 "system",
-                "Agents are still loading; the example will work once they are ready."
+                "Agents are still loading; the demo will work once they are ready."
             )
             return
         self.input_field.delete(0, tk.END)
@@ -526,8 +573,8 @@ class SportsBettingChatGUI:
 
 
 def main():
-        app = SportsBettingChatGUI()
-        app.run()
+    app = SportsBettingChatGUI()
+    app.run()
 
 
 if __name__ == "__main__":
