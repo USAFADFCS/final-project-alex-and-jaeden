@@ -40,10 +40,6 @@
 - **GPU:** Optional but speeds up LLM inference
 
 
-### DOWNLOAD ALL REQUIREMENTS
-
-pip install -r requirements.txt --break-system-packages
----
 
 ## 📥 Installation
 
@@ -77,6 +73,9 @@ python3 --version
 pip install numpy rich flask --break-system-packages
 
 # Optional: Install LLM dependencies (slower, enables Phi-3-mini explanations)
+
+pip install -r requirements.txt --break-system-packages
+
 pip install transformers torch accelerate --break-system-packages
 ```
 
