@@ -6,3 +6,27 @@ faiss-cpu>=1.7.0 # for the FAISS demo
 seaborn>=0.13.0 # for the graphing demo
 fair-llm>=0.1 # fair package
 pytest>=8.0.0
+
+# Additional dependencies for Sports Edge Analysis
+numpy>=1.21.0  # For numerical calculations in edge analysis
+
+# For FiveThirtyEight API integration
+requests>=2.28.0  # For API calls
+pandas>=1.5.0     # For data analysis
+
+# ===== NEW DEPENDENCIES FOR SPORTS EDGE INTERFACES =====
+
+# Web Interface (web_server.py)
+flask>=3.0.0  # Web server for browser interface
+
+# LLM Integration - OPTIONAL (for Phi-3-mini explanations)
+# Comment out these lines if you want rule-based mode only (faster, no 7.6GB download)
+transformers>=4.35.0  # HuggingFace transformers for Phi-3-mini
+torch>=2.0.0          # PyTorch backend for LLM
+accelerate>=0.24.0    # Speeds up model loading
+
+# Note: Tkinter is included with Python by default (for chatbot_gui.py)
+# If tkinter is not available on your system:
+#   - macOS: brew install python-tk
+#   - Ubuntu/Debian: sudo apt-get install python3-tk
+#   - Windows: Usually included with Python installer
